@@ -1,0 +1,201 @@
+---
+title: "THE DIFFERENCE BETWEEN ACTIVE TRAVEL TO SCHOOL BETWEEN ABERDEEN CITY AND ABERDEENSHIRE"
+author: "Awaneesh Kumar Tiwari"
+date: "`r Sys.Date()`"
+output:
+  pdf_document: default
+  pdf: default
+---
+
+### Document version: 1.0
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Aim of the report
+The aim of the report is to find the difference between active travel to school between Aberdeen City and Aberdeenshire and explain every step in the health data science pipeline, from reading in the data to producing the visualization.
+
+
+## Load packages
+
+```{r load-packages}
+library(tidyverse) # tidyverse is a collection of open source packages in R programming
+                   # language. It is used for data prepration, wrangling and visualization.
+library(viridis)   # It provides the base functions for generating the color maps in base R.                    # The color map designed to improve graph readability.
+library(plotly)    # interactive visualisations
+library(ggplot2)  # Plotting Multiple Charts and changing  
+                  # secondary axis to percentage 
+```
+
+## Read in the data
+
+```{r read-data}
+# Here read_csv function is used to read the scotpho_active_travel.csv file.
+active_travel <- read_csv("scotpho_active_travel.csv") 
+
+# To review the column specification and number of rows and cols.
+glimpse(active_travel)
+head(active_travel)
+```
+
+## Inspect the data
+
+```{r inspect-data}
+#Review the values in the variables
+group_by_all(active_travel)
+
+# Column name 'indicator' has two values 'Active travel to work' and 'Active travel to school' values.
+# We will have to filter out 'Active travel to school'.
+active_travel_school <- active_travel %>%
+filter(indicator == "Active travel to school")
+
+group_by_all(active_travel_school)
+# Now, we have a total of 658 rows for 'Active travel to school' out of 1081 rows. 
+
+
+#Similarly, we will have to filter out area_name (Aberdeen city and Aberdeenshire)
+
+active_travel_school_Aberdeencity_Aberdeenshire <- active_travel_school %>%
+filter(area_name %in% c("Aberdeen City","Aberdeenshire"))
+
+group_by_all(active_travel_school_Aberdeencity_Aberdeenshire)
+#28 rows have been filtered out of 658 rows. 14 rows for both Aberdeen City and Aberdeenshire.
+```
+
+## Prepare the data
+
+```{r prepare-data}
+#filter out column: area_name (Aberdeen city)
+travel_school_Aberdeencity <- active_travel_school %>%
+ filter(area_name == "Aberdeen City")
+group_by_all(travel_school_Aberdeencity)
+#14 rows of Aberdeen City have been filtered out of 658 rows.
+
+#filter out column: area_name (Aberdeenshire)
+travel_school_Aberdeenshire <- active_travel_school %>%
+ filter(area_name == "Aberdeenshire")
+group_by_all(travel_school_Aberdeenshire)
+#14 rows of Aberdeenshire have been filtered out of 658 rows.      
+  
+#join both dataset
+Aberdeencity_aberdeenshire_dataset<-full_join(travel_school_Aberdeencity, travel_school_Aberdeenshire,
+by = "year")
+                             
+# Here by default suffix are added in the new variables
+# for example: .x added with Aberdeen City and .y added with Aberdeenshire variables
+select_dataset= Aberdeencity_aberdeenshire_dataset %>%
+select('indicator.x', 'year', 'numerator.x', 'numerator.y', 'measure.x', 'measure.y') %>%
+mutate(numerator_diff=numerator.x-numerator.y, measure_diff=measure.x-measure.y )
+# mutate function has been used to create two new variables 'numberator_diff' and 'measure_diff'
+
+head(select_dataset) 
+group_by_all(select_dataset)
+
+# 'select_dataset' has multiple variables so to verify data more precisely
+# we have to again select only three variables.
+# select year, numerator_diff and measure_diff
+travel_diff <- select_dataset %>%
+select(year, numerator_diff, measure_diff) %>%
+group_by(year)
+
+group_by_all(travel_diff)
+```
+
+## Build data visualisation
+
+```{r data-vis}
+# Scatter plot - The difference between active travel to school between
+# Aberdeen city and Aberdeenshire
+p<- travel_diff %>% 
+  ggplot(aes(x = year, y = measure_diff)) +
+  geom_point()+
+  geom_smooth(se = TRUE) +
+  scale_x_continuous(breaks = seq(2008, 2021, by=2)) +
+  ylab("Measure difference (%)") +    # label y-axis
+  ggtitle("Diff. between Aberdeen city and Aberdeenshire") + 
+  theme_bw()+
+  theme(plot.background = element_rect(fill = "green"))
+ 
+ggplotly(p, tooltip = c("x","y"))
+
+```
+
+                Fig. 1: The difference between active travel to school between Aberdeen
+                          City and Aberdeenshire
+
+
+## Explaination of the above graph
+## Process:
+In this graph, scatter plot has selected to display the difference between active travel to school between Aberdeen City and Aberdeenshire. The duration of data presented in the above graph is from 2008 to 2021 (14 years). The first step was to filter out the 'Active travel to school' from 'Indicator' column and then 'Aberdeen city' and 'Aberdeenshire' from 'area_name' column. As a result, there were 28 rows returned for both 'Aberdeen city' and 'Aberdeenshire'. 
+
+Afterthat, two new datasets were created; One for Aberdeen City and other for Aberdeenshire to perform the full join and align the columns horizontally. Then the difference between Aberdeen City and Aberdeenshire was checked. To know the difference, there were two columns namely; numerator and measure were selected. Numerator is the total number of people actively traveled to Aberdeen City and Aberdeenshire and measure is the calculation given in the percentage form. Then, there were two new columns created; numerator_diff (numerator.AberdeenCity - numerator.Aberdeenshire) and measure_diff (measure.AberdeenCity - measure.Aberdeenshire). It was found the 'numerator_diff' has negative values (like: -2609, -1650, -6086, -4643, -3094, -6355, -4921, -4153, -4298, -3179, -4121, -3955, -4870 and -3442). The numerators of Aberdeenshire were higher than Aberdeen City but 'measure_diff' (%) was calculated well like: (19.27, 19.62, 15.93, 15.33, 14.92, 11.4, 12.58, 12.62, 12.26, 15.55, 12.61, 10.99, 11.51 and 12.55). Due to the negative values in 'numerator_diff' column, only 'measure_diff' column has been taken to visualize the difference between active travel to school between Aberdeen City and Aberdeenshire.
+
+## Output:
+In the above graph, x-axis has year column from 2008 to 2011 and y-axis have 'measure_diff' column in percentage. The difference in the 'measure' column shows the interesting pattern through out the year. Initially, the 'measure' difference was 19.3% aprox. in 2008 and since then the downfall pattern was noted until year 2013 (11.4% aprox). After that, it shows the stable pattern until 2021 (12.5% aprox.) with the fluctuation of 1.5% except in 2017 (15.5% aprox) high value. The graph shows there is still a difference of 12% aprox. between active travel to school between Aberdeen City and Aberdeenshire. In term of numerator, there is a difference of 3442 active travels to school between Aberdeen City and Aberdeenshire. There is a slight increase noted in year 2017 (15.5%) which needs to be further investigation whether it is due to the backlog entries, data error or due to any specific event.
+
+
+
+## What is the data source? What are the data limitations?
+The given dataset (scotpho_active_travel.csv), with data from the Scottish Public Health Observatory on active travel to school and work. The source of data is 'Hands Up Scotland Survey (HUSS), Sustrans (Official statistic)'.
+
+There are some limitations in this dataset. It has limited variables to go through in more details. The variable 'measure' given in the percentage and the denominator for this calculation is not mentioned. Numerator is given but the definition for the same is missing. Confidence intervals (lower/upper) are missing.
+
+## What are the strengths and limitations of the approach you took for your visualisation?
+
+## Strengths -
+1. The data is precise, consistent and easy to analyse. It has few variables and most of them are self explanatory. The column 'measure' is given in the percentage.
+
+2. The finding of this study is generalized and a representative of the sample population. This data has 14 years of measures of active travel to school between Aberdeen city and Aberdeenshire. So, it is easier to find the difference between Aberdeen city and Aberdeenshire[i].
+
+3. I tried a best approach to visualize the data, put numerator difference in bar chart and measure difference in line graph to display on secondary axis but the numerators of Aberdeen City are greater than Aberdeenshire and difference calculated (numerator_diff - new variable) in negative values. Whereas, the difference of measure variable (measure_diff - new variable) is calculated in positive. So, It doesn't look good to display both new variables (numerator_diff (-Ve values) and measure_diff(+ve values) in one graph. One  indicator will show above the zero line and other below zero. Therefore, I decided to keep only 'measure_diff' variable in a scatter chart.
+
+
+## Limitation-
+1.Although, the column (measure) is given in the percentage but the method of the calculation is not known. It could have produced more useful information if denominator was given. 
+2. The data has limited number of variables so it is difficult to produce complex analysis. 
+3. The difference between Aberdeen city and Aberdeenshire is calculated in percentage (column name: measure). The other related columns such as: denominator or gender are not available which limits the detailed analysis.
+
+
+## What would you do to ensure your analysis is reproducible?
+I would like to mention some important points to ensure the analysis is reproducible.
+1. In this analysis, the entire process has documented including data sources, steps taken and choices made.
+2. All the codes and narration are given in a R Markdown file so that it can be easily accessible and available for next level of analysis.
+3. The date and version control are in place to track the changes and ensure consistency over time.
+4. Provided clear instruction on the data science steps such as: import the data, inspect the data, data preparation and data visualization.
+5. Followed best practices and standards to maintain readability and consistency in the database[ii].
+6. The R Markdown file has been shared on Github to safe storage and accessible for others to reproduce the analysis. All the codes are well labeled.
+7. I have been using R 3.6.3 version for this data analysis and R Markdown file to store the data analysis steps and necessary documentation.
+
+In summary, there are three steps taken to ensure the data analysis is reproducible[iii]:
+
+#1. Before data analysis- 
+    Data safely stored in multiple locations and can be taken in portable format, data
+    formatted appropriately for analysis.
+    
+#2. During data analysis-
+    The code is clean and thoroughly commented. Software version and computing
+    environments been documented.
+    
+#3. After data analysis - 
+    The instruction will be given to locate the data file, meta data and codes on Github.
+    (Here is Github link to access the data and R Markdown file)
+
+
+
+
+
+
+
+
+
+
+
+References:
+[i]https://betterthesis.dk/research-methods/lesson-1different-approaches-to-research/strengths-and-limitations
+
+[ii]https://www.linkedin.com/advice/3/how-do-you-make-your-data-analysis-transparent-reproducible
+
+[iii] https://esajournals.onlinelibrary.wiley.com/doi/full/10.1002/bes2.1801
+
+
