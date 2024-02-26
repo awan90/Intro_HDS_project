@@ -20,7 +20,7 @@ The aim of the report is to find the difference between active travel to school 
 ## Load packages
 
 ```{r load-packages}
-library(tidyverse) # tidyverse is a collection of open source packages in R programming
+library(tidyverse) # This library is a collection of open-source packages in R programming
                    # language. It is used for data prepration, wrangling and visualization.
 library(viridis)   # It provides the base functions for generating the color maps in base R.                    # The color map designed to improve graph readability.
 library(plotly)    # interactive visualisations
@@ -179,7 +179,8 @@ In summary, there are three steps taken to ensure the data analysis is reproduci
     
 #3. After data analysis - 
     The instruction will be given to locate the data file, meta data and codes on Github.
-    (Here is Github link to access the data and R Markdown file)
+    Here is Github link to access the data and R Markdown file -
+    https://github.com/awan90/Intro_HDS_project
 
 
 
